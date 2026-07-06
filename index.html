@@ -62,12 +62,12 @@ main{flex:1;padding:0 16px 24px;}
   background:var(--surface);border-radius:16px;padding:12px 14px;
   box-shadow:var(--shadow);margin-bottom:16px;
 }
-.mood-strip .mood-emojis{display:flex;gap:4px;flex:1;}
-.mood-emojis button{
-  background:none;border:none;font-size:22px;cursor:pointer;border-radius:10px;
-  padding:4px 6px;opacity:0.45;transition:opacity .15s, transform .15s;
+.mood-strip .mood-emojis{display:flex;gap:10px;flex:1;align-items:center;}
+.mood-dot-btn{
+  width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;
+  opacity:0.55;transition:opacity .15s, transform .15s, border-color .15s;padding:0;
 }
-.mood-emojis button.selected{opacity:1;transform:scale(1.15);background:var(--card);}
+.mood-dot-btn.selected{opacity:1;transform:scale(1.15);border-color:var(--text);}
 .mood-note-btn{font-size:12px;color:var(--text-light);background:var(--card);border:none;border-radius:10px;padding:6px 10px;cursor:pointer;}
 
 /* habit cards */
@@ -77,8 +77,11 @@ main{flex:1;padding:0 16px 24px;}
 }
 .habit-card-top{display:flex;align-items:center;justify-content:space-between;}
 .habit-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;}
-.habit-title .emoji{font-size:20px;}
-.streak-badge{font-size:12px;color:var(--text-light);background:var(--card);border-radius:10px;padding:3px 8px;white-space:nowrap;}
+.habit-title .emoji{display:inline-flex;color:var(--text);}
+.habit-edit-btn{display:inline-flex;align-items:center;}
+.negative-toggle,.boolean-toggle{display:flex;align-items:center;justify-content:center;gap:6px;}
+svg{vertical-align:middle;flex-shrink:0;}
+.streak-badge{font-size:12px;color:var(--rose);background:var(--card);border-radius:10px;padding:3px 8px;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;}
 .habit-edit-btn{background:none;border:none;color:var(--text-light);font-size:14px;cursor:pointer;padding:4px;}
 .habit-progress-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
 .habit-progress-text{font-size:13px;color:var(--text-light);}
@@ -135,7 +138,7 @@ main{flex:1;padding:0 16px 24px;}
   font-size:11px;color:var(--text);position:relative;
 }
 .cal-day .num{font-size:11px;}
-.cal-day .mood-emoji{font-size:9px;line-height:1;margin-top:1px;}
+.cal-day .mood-dot{width:5px;height:5px;border-radius:50%;margin-top:2px;}
 .cal-day.empty{visibility:hidden;}
 .section-card{
   background:var(--surface);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-top:16px;
@@ -233,7 +236,7 @@ main{flex:1;padding:0 16px 24px;}
 <div id="app">
   <header class="topbar">
     <div class="date-label" id="dateLabel"></div>
-    <button class="icon-btn" id="settingsBtn">⚙️</button>
+    <button class="icon-btn" id="settingsBtn" data-icon="sliders"></button>
   </header>
 
   <main>
@@ -243,14 +246,14 @@ main{flex:1;padding:0 16px 24px;}
         <button class="mood-note-btn" id="moodNoteBtn">備註</button>
       </div>
       <div class="habit-list" id="habitList"></div>
-      <button class="fab" id="addHabitBtn">＋ 新增習慣</button>
+      <button class="fab" id="addHabitBtn"><span data-icon="plus" style="vertical-align:-4px;margin-right:4px;"></span>新增習慣</button>
     </section>
 
     <section id="page-stats" class="page">
       <div class="stats-header">
-        <button id="monthPrev">‹</button>
+        <button id="monthPrev" data-icon="chevron-left"></button>
         <span id="monthLabel"></span>
-        <button id="monthNext">›</button>
+        <button id="monthNext" data-icon="chevron-right"></button>
       </div>
       <div class="calendar" id="calendarGrid"></div>
       <div class="section-card">
@@ -281,9 +284,9 @@ main{flex:1;padding:0 16px 24px;}
   </main>
 
   <nav class="bottom-nav">
-    <button data-page="home" class="active"><span class="nav-icon">🏠</span>主頁</button>
-    <button data-page="stats"><span class="nav-icon">📅</span>統計</button>
-    <button data-page="report"><span class="nav-icon">📊</span>報表</button>
+    <button data-page="home" class="active"><span class="nav-icon" data-icon="home"></span>主頁</button>
+    <button data-page="stats"><span class="nav-icon" data-icon="calendar"></span>統計</button>
+    <button data-page="report"><span class="nav-icon" data-icon="bar-chart"></span>報表</button>
   </nav>
 </div>
 
@@ -390,19 +393,62 @@ main{flex:1;padding:0 16px 24px;}
 
 <script>
 const STORAGE_KEY = 'habitTrackerData_v1';
-const HABIT_ICONS = ['🏃','🧘','💧','🚽','💊','🍬','📖','😴','🚭','🍺','🧹','✍️','🎯','🌱','🐱'];
+
+const ICONS = {
+  activity: '<polyline points="2,12 7,12 9,6 13,18 16,12 22,12"/>',
+  meditate: '<circle cx="12" cy="6" r="2.5"/><path d="M6 19c0-4 2.5-6 6-6s6 2 6 6"/><path d="M4 19h16"/>',
+  droplet: '<path d="M12 2C12 2 5 11 5 15a7 7 0 0 0 14 0C19 11 12 2 12 2Z"/>',
+  toilet: '<rect x="7" y="3" width="10" height="5" rx="1"/><path d="M6 10h12l-1 9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z"/>',
+  pill: '<rect x="4" y="9" width="16" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/>',
+  candy: '<circle cx="12" cy="12" r="4"/><path d="M8 12L4 9v6z"/><path d="M16 12l4-3v6z"/>',
+  book: '<path d="M2 5c3-2 7-2 10 0v14c-3-2-7-2-10 0z"/><path d="M22 5c-3-2-7-2-10 0v14c3-2 7-2 10 0z"/>',
+  moon: '<path d="M21 12.3A9 9 0 1 1 11.7 3a7 7 0 0 0 9.3 9.3z"/>',
+  'no-smoking': '<rect x="2" y="15" width="13" height="4"/><line x1="4" y1="4" x2="20" y2="20"/>',
+  beer: '<rect x="5" y="7" width="10" height="12" rx="1"/><path d="M15 10h2a2 2 0 1 1 0 4h-2"/><line x1="5" y1="11" x2="15" y2="11"/>',
+  broom: '<line x1="18" y1="4" x2="9" y2="13"/><path d="M9 13l-5 7 8-3z"/>',
+  pen: '<path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><line x1="14" y1="7" x2="17" y2="10"/>',
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>',
+  sprout: '<path d="M12 22v-9"/><path d="M12 13c0-4-3-6-7-6 0 4 3 7 7 6z"/><path d="M12 13c0-4 3-6 7-6 0 4-3 7-7 6z"/>',
+  cat: '<path d="M4 8l3-4 2 3h6l2-3 3 4"/><rect x="5" y="8" width="14" height="10" rx="5"/><circle cx="9.5" cy="13" r="0.8" fill="currentColor"/><circle cx="14.5" cy="13" r="0.8" fill="currentColor"/>',
+  home: '<path d="M3 11L12 3l9 8"/><path d="M5 10v10h14V10"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>',
+  'bar-chart': '<line x1="4" y1="20" x2="4" y2="12"/><line x1="12" y1="20" x2="12" y2="6"/><line x1="20" y1="20" x2="20" y2="14"/>',
+  sliders: '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="18" r="2"/>',
+  pencil: '<path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><line x1="14" y1="7" x2="17" y2="10"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  check: '<polyline points="4,12 9,17 20,6"/>',
+  'check-circle': '<circle cx="12" cy="12" r="9"/><polyline points="8,12.5 11,15.5 16,9"/>',
+  'x-circle': '<circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/>',
+  'chevron-left': '<polyline points="15,6 9,12 15,18"/>',
+  'chevron-right': '<polyline points="9,6 15,12 9,18"/>',
+  flame: '<path d="M12 22c-4 0-7-2.5-7-6.5C5 11 8 8 9 4c1 2 1 4 3 4 1.5 0 2-2 2-3 3 2 5 5.5 5 8.5 0 4-3 8.5-7 8.5z"/>',
+};
+
+const HABIT_ICON_KEYS = ['activity','meditate','droplet','toilet','pill','candy','book','moon','no-smoking','beer','broom','pen','target','sprout','cat'];
+const EMOJI_TO_ICON_KEY = {'🏃':'activity','🧘':'meditate','💧':'droplet','🚽':'toilet','💊':'pill','🍬':'candy','📖':'book','😴':'moon','🚭':'no-smoking','🍺':'beer','🧹':'broom','✍️':'pen','🎯':'target','🌱':'sprout','🐱':'cat'};
+
+function iconSvg(name, size){
+  size = size || 20;
+  const inner = ICONS[name] || ICONS.target;
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+}
+
+function habitIconKey(habit){
+  const raw = habit.icon;
+  return EMOJI_TO_ICON_KEY[raw] || (ICONS[raw] ? raw : 'target');
+}
 
 function uid(){ return 'h_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
 
 function defaultHabits(){
   const t = todayStr();
   return [
-    {id:uid(),name:'運動',icon:'🏃',type:'duration',target:30,unit:'分鐘',frequency:{type:'daily'},order:0,archived:false,createdAt:t},
-    {id:uid(),name:'冥想',icon:'🧘',type:'timer',target:10,unit:'分鐘',frequency:{type:'daily'},order:1,archived:false,createdAt:t},
-    {id:uid(),name:'飲水',icon:'💧',type:'quantity',target:2000,unit:'ml',frequency:{type:'daily'},order:2,archived:false,createdAt:t},
-    {id:uid(),name:'上廁所',icon:'🚽',type:'count',target:5,unit:'次',frequency:{type:'daily'},order:3,archived:false,createdAt:t},
-    {id:uid(),name:'保健食品',icon:'💊',type:'boolean',target:1,unit:'',frequency:{type:'daily'},order:4,archived:false,createdAt:t},
-    {id:uid(),name:'戒零食',icon:'🍬',type:'negative',target:1,unit:'',frequency:{type:'daily'},order:5,archived:false,createdAt:t},
+    {id:uid(),name:'運動',icon:'activity',type:'duration',target:30,unit:'分鐘',frequency:{type:'daily'},order:0,archived:false,createdAt:t},
+    {id:uid(),name:'冥想',icon:'meditate',type:'timer',target:10,unit:'分鐘',frequency:{type:'daily'},order:1,archived:false,createdAt:t},
+    {id:uid(),name:'飲水',icon:'droplet',type:'quantity',target:2000,unit:'ml',frequency:{type:'daily'},order:2,archived:false,createdAt:t},
+    {id:uid(),name:'上廁所',icon:'toilet',type:'count',target:5,unit:'次',frequency:{type:'daily'},order:3,archived:false,createdAt:t},
+    {id:uid(),name:'保健食品',icon:'pill',type:'boolean',target:1,unit:'',frequency:{type:'daily'},order:4,archived:false,createdAt:t},
+    {id:uid(),name:'戒零食',icon:'candy',type:'negative',target:1,unit:'',frequency:{type:'daily'},order:5,archived:false,createdAt:t},
   ];
 }
 
@@ -570,7 +616,13 @@ function computeBestStreak(habit){
   return {value:best, unit:'天'};
 }
 
-const MOOD_OPTIONS = ['😞','😐','🙂','😄','🥰'];
+const MOOD_LEVELS = [
+  {color:'#9FAAB4', label:'低落'},
+  {color:'#B8AFA3', label:'普通'},
+  {color:'#A3AC9B', label:'平穩'},
+  {color:'#C9A9A6', label:'不錯'},
+  {color:'#CBA36B', label:'很棒'},
+];
 
 function activeHabits(){ return state.habits.filter(h=>!h.archived).sort((a,b)=>a.order-b.order); }
 
@@ -587,13 +639,15 @@ function renderMoodStrip(){
   const mood = state.moods[t] || {};
   const wrap = document.getElementById('moodEmojis');
   wrap.innerHTML = '';
-  MOOD_OPTIONS.forEach(e=>{
+  MOOD_LEVELS.forEach((m, i)=>{
     const btn = document.createElement('button');
-    btn.textContent = e;
-    if(mood.emoji === e) btn.classList.add('selected');
+    btn.className = 'mood-dot-btn';
+    btn.style.background = m.color;
+    btn.title = m.label;
+    if(mood.level === i) btn.classList.add('selected');
     btn.onclick = () => {
       if(!state.moods[t]) state.moods[t] = {};
-      state.moods[t].emoji = e;
+      state.moods[t].level = i;
       saveState();
       renderMoodStrip();
     };
@@ -639,34 +693,34 @@ function renderHabitList(){
     const card = document.createElement('div');
     card.className = 'habit-card';
     const streak = computeCurrentStreak(habit);
-    const streakLabel = streak.value > 0 ? `🔥 ${streak.value}${streak.unit}` : '';
+    const streakLabel = streak.value > 0 ? `${iconSvg('flame',13)} ${streak.value}${streak.unit}` : '';
 
     if(habit.type === 'negative'){
       const broke = getLogValue(habit, t) === true;
       card.classList.add('negative-card', broke ? 'broken' : 'success');
       card.innerHTML = `
         <div class="habit-card-top">
-          <div class="habit-title"><span class="emoji">${habit.icon}</span>${habit.name}</div>
+          <div class="habit-title"><span class="emoji">${iconSvg(habitIconKey(habit))}</span>${habit.name}</div>
           <div style="display:flex;align-items:center;gap:6px;">
             ${streakLabel ? `<span class="streak-badge">${streakLabel}</span>` : ''}
-            <button class="habit-edit-btn" data-edit="${habit.id}">✎</button>
+            <button class="habit-edit-btn" data-edit="${habit.id}">${iconSvg('pencil',16)}</button>
           </div>
         </div>
         <button class="negative-toggle ${broke?'is-broken':'is-success'}" data-negtoggle="${habit.id}">
-          ${broke ? '✗ 今天破功了' : '✅ 今天忍住了'}
+          ${broke ? iconSvg('x-circle',18) + ' 今天破功了' : iconSvg('check-circle',18) + ' 今天忍住了'}
         </button>
       `;
     } else if(habit.type === 'boolean'){
       const done = getLogValue(habit, t) === true;
       card.innerHTML = `
         <div class="habit-card-top">
-          <div class="habit-title"><span class="emoji">${habit.icon}</span>${habit.name}</div>
+          <div class="habit-title"><span class="emoji">${iconSvg(habitIconKey(habit))}</span>${habit.name}</div>
           <div style="display:flex;align-items:center;gap:6px;">
             ${streakLabel ? `<span class="streak-badge">${streakLabel}</span>` : ''}
-            <button class="habit-edit-btn" data-edit="${habit.id}">✎</button>
+            <button class="habit-edit-btn" data-edit="${habit.id}">${iconSvg('pencil',16)}</button>
           </div>
         </div>
-        <button class="boolean-toggle ${done?'done':''}" data-booltoggle="${habit.id}">${done ? '✓ 已完成' : '尚未完成'}</button>
+        <button class="boolean-toggle ${done?'done':''}" data-booltoggle="${habit.id}">${done ? iconSvg('check',16) + ' 已完成' : '尚未完成'}</button>
       `;
     } else if(habit.type === 'timer'){
       const v = habitProgressValue(habit, t) || 0;
@@ -674,10 +728,10 @@ function renderHabitList(){
       const pct = Math.min(100, Math.round(v/habit.target*100));
       card.innerHTML = `
         <div class="habit-card-top">
-          <div class="habit-title"><span class="emoji">${habit.icon}</span>${habit.name}</div>
+          <div class="habit-title"><span class="emoji">${iconSvg(habitIconKey(habit))}</span>${habit.name}</div>
           <div style="display:flex;align-items:center;gap:6px;">
             ${streakLabel ? `<span class="streak-badge">${streakLabel}</span>` : ''}
-            <button class="habit-edit-btn" data-edit="${habit.id}">✎</button>
+            <button class="habit-edit-btn" data-edit="${habit.id}">${iconSvg('pencil',16)}</button>
           </div>
         </div>
         <div class="habit-progress-row">
@@ -696,10 +750,10 @@ function renderHabitList(){
       if(habit.type === 'quantity'){ step1 = 250; step2 = 500; }
       card.innerHTML = `
         <div class="habit-card-top">
-          <div class="habit-title"><span class="emoji">${habit.icon}</span>${habit.name}</div>
+          <div class="habit-title"><span class="emoji">${iconSvg(habitIconKey(habit))}</span>${habit.name}</div>
           <div style="display:flex;align-items:center;gap:6px;">
             ${streakLabel ? `<span class="streak-badge">${streakLabel}</span>` : ''}
-            <button class="habit-edit-btn" data-edit="${habit.id}">✎</button>
+            <button class="habit-edit-btn" data-edit="${habit.id}">${iconSvg('pencil',16)}</button>
           </div>
         </div>
         <div class="habit-progress-row">
@@ -755,7 +809,7 @@ function renderHabitList(){
 // ---------- timer ----------
 let timerState = null;
 function openTimer(habit){
-  document.getElementById('timerHabitName').textContent = `${habit.icon} ${habit.name}（${habit.target} 分鐘）`;
+  document.getElementById('timerHabitName').innerHTML = `${iconSvg(habitIconKey(habit),18)} ${habit.name}（${habit.target} 分鐘）`;
   document.getElementById('timerTime').textContent = `${pad2(habit.target)}:00`;
   document.getElementById('timerCircle').style.setProperty('--pct', 0);
   document.getElementById('timerStartBtn').textContent = '開始';
@@ -816,16 +870,16 @@ let editingHabitId = null;
 let habitModalTypeSel = 'count';
 let habitModalFreqSel = 'daily';
 let habitModalDays = [];
-let habitModalEmoji = HABIT_ICONS[0];
+let habitModalEmoji = HABIT_ICON_KEYS[0];
 
 function buildEmojiGrid(){
   const wrap = document.getElementById('habitEmojiGrid');
   wrap.innerHTML = '';
-  HABIT_ICONS.forEach(e=>{
+  HABIT_ICON_KEYS.forEach(key=>{
     const btn = document.createElement('button');
-    btn.textContent = e; btn.type = 'button';
-    if(e === habitModalEmoji) btn.classList.add('selected');
-    btn.onclick = () => { habitModalEmoji = e; buildEmojiGrid(); };
+    btn.innerHTML = iconSvg(key, 20); btn.type = 'button';
+    if(key === habitModalEmoji) btn.classList.add('selected');
+    btn.onclick = () => { habitModalEmoji = key; buildEmojiGrid(); };
     wrap.appendChild(btn);
   });
 }
@@ -885,7 +939,7 @@ function openHabitModal(habit){
   document.getElementById('habitTarget').value = habit ? (habit.target||1) : 1;
   document.getElementById('habitUnit').value = habit ? (habit.unit||'') : '';
   habitModalTypeSel = habit ? habit.type : 'count';
-  habitModalEmoji = habit ? habit.icon : HABIT_ICONS[0];
+  habitModalEmoji = habit ? habitIconKey(habit) : HABIT_ICON_KEYS[0];
   habitModalFreqSel = habit ? habit.frequency.type : 'daily';
   habitModalDays = habit && habit.frequency.type==='weekly_days' ? [...habit.frequency.days] : [];
   document.getElementById('habitWeeklyCount').value = habit && habit.frequency.type==='weekly_count' ? habit.frequency.count : 3;
@@ -936,7 +990,7 @@ function renderSettingsHabitList(){
     const row = document.createElement('div');
     row.className = 'settings-habit-row';
     row.innerHTML = `
-      <div class="left"><span>${h.icon}</span><span>${h.name}</span></div>
+      <div class="left"><span>${iconSvg(habitIconKey(h),16)}</span><span>${h.name}</span></div>
       <div>
         <button data-editrow="${h.id}">編輯</button>
         <button data-delrow="${h.id}">刪除</button>
@@ -1032,7 +1086,8 @@ function renderCalendar(){
     }
     if(ds === todayS) el.style.border = '2px solid var(--dusk)';
     const mood = state.moods[ds];
-    el.innerHTML = `<span class="num">${day}</span>${mood && mood.emoji ? `<span class="mood-emoji">${mood.emoji}</span>` : ''}`;
+    const moodLevel = mood && typeof mood.level === 'number' ? MOOD_LEVELS[mood.level] : null;
+    el.innerHTML = `<span class="num">${day}</span>${moodLevel ? `<span class="mood-dot" style="background:${moodLevel.color}"></span>` : ''}`;
     grid.appendChild(el);
   }
 }
@@ -1046,7 +1101,7 @@ function renderBestStreaks(){
     const best = computeBestStreak(h);
     const row = document.createElement('div');
     row.className = 'best-streak-row';
-    row.innerHTML = `<span>${h.icon} ${h.name}</span><span class="flame">🔥 ${best.value} ${best.unit}</span>`;
+    row.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;">${iconSvg(habitIconKey(h),16)} ${h.name}</span><span class="flame" style="display:inline-flex;align-items:center;gap:4px;color:var(--rose);font-weight:600;">${iconSvg('flame',14)} ${best.value} ${best.unit}</span>`;
     wrap.appendChild(row);
   });
 }
@@ -1060,7 +1115,7 @@ function renderHabitGrids(){
     block.className = 'habit-grid-block';
     const title = document.createElement('div');
     title.className = 'habit-grid-title';
-    title.innerHTML = `<span>${h.icon}</span><span>${h.name}</span>`;
+    title.innerHTML = `<span>${iconSvg(habitIconKey(h),16)}</span><span>${h.name}</span>`;
     block.appendChild(title);
     const squares = document.createElement('div');
     squares.className = 'grid-squares';
@@ -1143,7 +1198,7 @@ function renderReportPage(){
     const row = document.createElement('div');
     row.className = 'rank-row';
     row.innerHTML = `
-      <span class="rank-name">${r.habit.icon} ${r.habit.name}</span>
+      <span class="rank-name">${iconSvg(habitIconKey(r.habit),16)} ${r.habit.name}</span>
       <span class="rank-rate ${pct<50?'low':pct>=80?'high':''}">${pct}%（${r.success}/${r.scheduled}）</span>
     `;
     rankWrap.appendChild(row);
@@ -1169,7 +1224,14 @@ document.querySelectorAll('.bottom-nav button').forEach(btn=>{
 });
 
 // ---------- init ----------
+function renderStaticIcons(){
+  document.querySelectorAll('[data-icon]').forEach(el=>{
+    el.innerHTML = iconSvg(el.dataset.icon, el.dataset.iconSize ? Number(el.dataset.iconSize) : 20);
+  });
+}
+
 function renderAll(){
+  renderStaticIcons();
   renderDateLabel();
   renderMoodStrip();
   renderHabitList();
