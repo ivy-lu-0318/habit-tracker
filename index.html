@@ -191,13 +191,7 @@ svg{vertical-align:middle;flex-shrink:0;}
   cursor:pointer;color:var(--text-light);
 }
 .chip.selected{background:var(--sage);color:#fff;border-color:var(--sage);}
-.icon-category-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;-webkit-overflow-scrolling:touch;}
-.icon-category-tabs button{
-  flex-shrink:0;border:1px solid var(--border);border-radius:10px;padding:6px 11px;font-size:12px;
-  background:var(--surface);color:var(--text-light);cursor:pointer;white-space:nowrap;
-}
-.icon-category-tabs button.active{background:var(--dusk);color:#fff;border-color:var(--dusk);}
-.emoji-grid{display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow-y:auto;padding:2px;}
+.emoji-grid{display:flex;flex-wrap:wrap;gap:6px;max-height:260px;overflow-y:auto;padding:2px;}
 .emoji-grid button{color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .emoji-grid button.selected{background:var(--card);border-color:var(--accent);color:var(--text);}
 .day-chips{display:flex;gap:5px;}
@@ -305,7 +299,6 @@ svg{vertical-align:middle;flex-shrink:0;}
     </div>
     <div class="form-row">
       <label>圖示</label>
-      <div class="icon-category-tabs" id="iconCategoryTabs"></div>
       <div class="emoji-grid" id="habitEmojiGrid"></div>
     </div>
     <div class="form-row">
@@ -964,33 +957,11 @@ let habitModalTypeSel = 'count';
 let habitModalFreqSel = 'daily';
 let habitModalDays = [];
 let habitModalEmoji = HABIT_ICON_KEYS[0];
-const ICON_CATEGORY_NAMES = Object.keys(ICON_CATEGORIES);
-let iconPickerCategory = ICON_CATEGORY_NAMES[0];
-
-function categoryOfIcon(key){
-  for(const name of ICON_CATEGORY_NAMES){
-    if(ICON_CATEGORIES[name].includes(key)) return name;
-  }
-  return ICON_CATEGORY_NAMES[0];
-}
-
-function buildIconCategoryTabs(){
-  const wrap = document.getElementById('iconCategoryTabs');
-  wrap.innerHTML = '';
-  ICON_CATEGORY_NAMES.forEach(name=>{
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = name;
-    if(name === iconPickerCategory) btn.classList.add('active');
-    btn.onclick = () => { iconPickerCategory = name; buildIconCategoryTabs(); buildEmojiGrid(); };
-    wrap.appendChild(btn);
-  });
-}
 
 function buildEmojiGrid(){
   const wrap = document.getElementById('habitEmojiGrid');
   wrap.innerHTML = '';
-  ICON_CATEGORIES[iconPickerCategory].forEach(key=>{
+  HABIT_ICON_KEYS.forEach(key=>{
     const btn = document.createElement('button');
     btn.innerHTML = iconSvg(key, 20); btn.type = 'button';
     if(key === habitModalEmoji) btn.classList.add('selected');
@@ -1055,11 +1026,9 @@ function openHabitModal(habit){
   document.getElementById('habitUnit').value = habit ? (habit.unit||'') : '';
   habitModalTypeSel = habit ? habit.type : 'count';
   habitModalEmoji = habit ? habitIconKey(habit) : HABIT_ICON_KEYS[0];
-  iconPickerCategory = categoryOfIcon(habitModalEmoji);
   habitModalFreqSel = habit ? habit.frequency.type : 'daily';
   habitModalDays = habit && habit.frequency.type==='weekly_days' ? [...habit.frequency.days] : [];
   document.getElementById('habitWeeklyCount').value = habit && habit.frequency.type==='weekly_count' ? habit.frequency.count : 3;
-  buildIconCategoryTabs();
   buildEmojiGrid();
   updateTypeChipsUI();
   updateFreqChipsUI();
