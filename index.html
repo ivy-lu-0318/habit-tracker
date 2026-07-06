@@ -39,7 +39,7 @@ body{
   min-height:100vh;
   display:flex;
   flex-direction:column;
-  padding-bottom:64px;
+  padding-bottom:96px;
 }
 .topbar{
   display:flex;
@@ -124,12 +124,13 @@ svg{vertical-align:middle;flex-shrink:0;}
   position:fixed;bottom:0;left:0;right:0;
   max-width:480px;margin:0 auto;
   display:flex;background:var(--surface);border-top:1px solid var(--border);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
 }
 .bottom-nav button{
-  flex:1;border:none;background:none;padding:10px 0 8px;font-size:11px;color:var(--text-light);cursor:pointer;
+  flex:1;border:none;background:none;padding:16px 0 20px;font-size:12px;color:var(--text-light);cursor:pointer;
 }
 .bottom-nav button.active{color:var(--text);font-weight:600;}
-.bottom-nav .nav-icon{display:block;font-size:18px;margin-bottom:2px;}
+.bottom-nav .nav-icon{display:block;font-size:20px;margin-bottom:4px;}
 
 /* stats page */
 .stats-header{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;}
@@ -1295,14 +1296,17 @@ function periodRange(period){
   const today = new Date();
   if(period === 'week'){
     const start = mondayOfWeek(today);
-    return {start, end: today};
+    const end = addDays(start, 6);
+    return {start, end};
   }
   if(period === 'month'){
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    return {start, end: today};
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return {start, end};
   }
   const start = new Date(today.getFullYear(), 0, 1);
-  return {start, end: today};
+  const end = new Date(today.getFullYear(), 11, 31);
+  return {start, end};
 }
 
 function renderReportPage(){
