@@ -1366,21 +1366,44 @@ function periodRange(period){
   return {start, end};
 }
 
+function habitPeriodStats(habit, start, end){
+  const startS = dateStr(start), endS = dateStr(end);
+  if(habit.frequency.type === 'weekly_count'){
+    const target = habit.frequency.count || 1;
+    let scheduled = 0, success = 0;
+    let week = mondayOfWeek(start);
+    while(dateStr(week) <= endS){
+      const days = [];
+      for(let i=0;i<7;i++) days.push(dateStr(addDays(week,i)));
+      const relevantDays = days.filter(d => d >= startS && d <= endS && d >= habitStartDate(habit));
+      if(relevantDays.length > 0){
+        const successCount = relevantDays.filter(d => isDaySuccess(habit,d)).length;
+        scheduled += target;
+        success += Math.min(successCount, target);
+      }
+      week = addDays(week, 7);
+    }
+    return {scheduled, success};
+  }
+  let scheduled = 0, success = 0;
+  let cursor = new Date(start);
+  while(dateStr(cursor) <= endS){
+    const ds = dateStr(cursor);
+    if(isScheduledOnDate(habit, ds)){
+      scheduled++;
+      if(isDaySuccess(habit, ds)) success++;
+    }
+    cursor = addDays(cursor, 1);
+  }
+  return {scheduled, success};
+}
+
 function renderReportPage(){
   const {start, end} = periodRange(reportPeriod);
   const habits = activeHabits();
   let totalScheduled = 0, totalSuccess = 0;
   const rows = habits.map(h=>{
-    let scheduled = 0, success = 0;
-    let cursor = new Date(start);
-    while(dateStr(cursor) <= dateStr(end)){
-      const ds = dateStr(cursor);
-      if(isScheduledOnDate(h, ds)){
-        scheduled++;
-        if(isDaySuccess(h, ds)) success++;
-      }
-      cursor = addDays(cursor, 1);
-    }
+    const {scheduled, success} = habitPeriodStats(h, start, end);
     totalScheduled += scheduled; totalSuccess += success;
     const rate = scheduled > 0 ? success/scheduled : null;
     return {habit:h, rate, scheduled, success};
