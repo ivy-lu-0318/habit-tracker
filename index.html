@@ -602,15 +602,33 @@ function isScheduledOnDate(habit, dstr){
   return true;
 }
 
-function getLogValue(habit, dstr){
+const TARGET_SNAPSHOT_TYPES = ['count', 'duration', 'timer', 'quantity'];
+
+function getRawLog(habit, dstr){
   const day = state.logs[dstr];
   if(!day) return undefined;
   return day[habit.id];
 }
 
+function getLogValue(habit, dstr){
+  const raw = getRawLog(habit, dstr);
+  if(raw && typeof raw === 'object') return raw.value;
+  return raw;
+}
+
+// 記錄當下的目標值一起存起來,以後改目標不會回頭改變這天的完成判定；
+// 舊資料沒有存目標快照,只能退回用現在的目標值判斷(無法回溯補正)。
+function getLogTarget(habit, dstr){
+  const raw = getRawLog(habit, dstr);
+  if(raw && typeof raw === 'object' && typeof raw.target === 'number') return raw.target;
+  return habit.target;
+}
+
 function setLogValue(habit, dstr, value){
   if(!state.logs[dstr]) state.logs[dstr] = {};
-  state.logs[dstr][habit.id] = value;
+  state.logs[dstr][habit.id] = TARGET_SNAPSHOT_TYPES.includes(habit.type)
+    ? {value, target: habit.target}
+    : value;
   saveState();
 }
 
@@ -621,7 +639,7 @@ function isDaySuccess(habit, dstr){
     case 'duration':
     case 'timer':
     case 'quantity':
-      return (v || 0) >= habit.target;
+      return (v || 0) >= getLogTarget(habit, dstr);
     case 'boolean':
     case 'negative':
       return v === true;
