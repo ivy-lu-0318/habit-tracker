@@ -77,6 +77,8 @@ input[type=range].mood-slider::-moz-range-thumb{
   cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.25);
 }
 .mood-note-btn{font-size:12px;color:var(--text-light);background:var(--card);border:none;border-radius:10px;padding:6px 10px;cursor:pointer;flex-shrink:0;}
+.mood-modal-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.mood-modal-row .mood-slider{flex:1;}
 
 /* habit cards */
 .habit-card{
@@ -381,7 +383,11 @@ svg{vertical-align:middle;flex-shrink:0;}
 
 <div class="modal-overlay hidden" id="moodModal">
   <div class="modal-sheet">
-    <div class="modal-title">今天的心情備註</div>
+    <div class="modal-title" id="moodModalTitle">今天的心情備註</div>
+    <div class="mood-modal-row">
+      <div class="mood-swatch" id="moodModalSwatch"></div>
+      <input type="range" class="mood-slider" id="moodModalSlider" min="0" max="100" value="50">
+    </div>
     <div class="form-row">
       <textarea id="moodNoteText" rows="4" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;" placeholder="想寫點什麼嗎？"></textarea>
     </div>
@@ -795,19 +801,39 @@ function renderMoodStrip(){
   };
 }
 
-document.getElementById('moodNoteBtn').onclick = () => {
-  const t = todayStr();
-  const mood = state.moods[t] || {};
+let moodModalDate = null;
+
+function openMoodModal(dstr){
+  moodModalDate = dstr;
+  const mood = state.moods[dstr] || {};
+  const v = moodValueOf(mood);
+  const slider = document.getElementById('moodModalSlider');
+  const swatch = document.getElementById('moodModalSwatch');
+  slider.value = v === null ? 50 : v;
+  swatch.style.background = moodColorForValue(Number(slider.value));
+  slider.oninput = () => { swatch.style.background = moodColorForValue(Number(slider.value)); };
   document.getElementById('moodNoteText').value = mood.note || '';
+  const weekdays = ['日','一','二','三','四','五','六'];
+  const d = parseDateStr(dstr);
+  document.getElementById('moodModalTitle').textContent = dstr === todayStr()
+    ? '今天的心情備註'
+    : `${d.getMonth()+1}/${d.getDate()}（週${weekdays[d.getDay()]}）心情備註`;
   openModal('moodModal');
-};
+}
+
+document.getElementById('moodNoteBtn').onclick = () => openMoodModal(todayStr());
 document.getElementById('moodNoteCancelBtn').onclick = () => closeModal('moodModal');
 document.getElementById('moodNoteSaveBtn').onclick = () => {
-  const t = todayStr();
+  const t = moodModalDate || todayStr();
   if(!state.moods[t]) state.moods[t] = {};
+  state.moods[t].value = Number(document.getElementById('moodModalSlider').value);
+  delete state.moods[t].level;
   state.moods[t].note = document.getElementById('moodNoteText').value;
   saveState();
   closeModal('moodModal');
+  renderMoodStrip();
+  renderCalendar();
+  renderMoodTrend();
 };
 
 function habitProgressLabel(habit, dstr){
@@ -1281,6 +1307,10 @@ function renderCalendar(){
     const mood = state.moods[ds];
     const moodV = moodValueOf(mood);
     el.innerHTML = `<span class="num">${day}</span>${moodV !== null ? `<span class="mood-dot" style="background:${moodColorForValue(moodV)}"></span>` : ''}`;
+    if(ds <= todayS){
+      el.style.cursor = 'pointer';
+      el.onclick = () => openMoodModal(ds);
+    }
     grid.appendChild(el);
   }
 }
