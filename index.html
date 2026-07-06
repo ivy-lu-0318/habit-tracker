@@ -63,12 +63,20 @@ main{flex:1;padding:0 16px 24px;}
   box-shadow:var(--shadow);margin-bottom:16px;
 }
 .mood-strip .mood-emojis{display:flex;gap:10px;flex:1;align-items:center;}
-.mood-dot-btn{
-  width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;
-  opacity:0.55;transition:opacity .15s, transform .15s, border-color .15s;padding:0;
+.mood-swatch{width:18px;height:18px;border-radius:50%;flex-shrink:0;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border);}
+input[type=range].mood-slider{
+  -webkit-appearance:none;appearance:none;flex:1;height:12px;border-radius:6px;outline:none;
+  background:linear-gradient(to right,#9FAAB4,#B8AFA3,#A3AC9B,#C9A9A6,#CBA36B);
 }
-.mood-dot-btn.selected{opacity:1;transform:scale(1.15);border-color:var(--text);}
-.mood-note-btn{font-size:12px;color:var(--text-light);background:var(--card);border:none;border-radius:10px;padding:6px 10px;cursor:pointer;}
+input[type=range].mood-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;
+  border:2px solid var(--text);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.25);
+}
+input[type=range].mood-slider::-moz-range-thumb{
+  width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid var(--text);
+  cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.25);
+}
+.mood-note-btn{font-size:12px;color:var(--text-light);background:var(--card);border:none;border-radius:10px;padding:6px 10px;cursor:pointer;flex-shrink:0;}
 
 /* habit cards */
 .habit-card{
@@ -242,7 +250,8 @@ svg{vertical-align:middle;flex-shrink:0;}
   <main>
     <section id="page-home" class="page active">
       <div class="mood-strip">
-        <div class="mood-emojis" id="moodEmojis"></div>
+        <div class="mood-swatch" id="moodSwatch"></div>
+        <input type="range" class="mood-slider" id="moodSlider" min="0" max="100" value="50">
         <button class="mood-note-btn" id="moodNoteBtn">備註</button>
       </div>
       <div class="habit-list" id="habitList"></div>
@@ -702,13 +711,35 @@ function computeBestStreak(habit){
   return {value:best, unit:'天'};
 }
 
-const MOOD_LEVELS = [
-  {color:'#9FAAB4', label:'低落'},
-  {color:'#B8AFA3', label:'普通'},
-  {color:'#A3AC9B', label:'平穩'},
-  {color:'#C9A9A6', label:'不錯'},
-  {color:'#CBA36B', label:'很棒'},
+const MOOD_GRADIENT_STOPS = [
+  {p:0, c:[159,170,180]},
+  {p:25, c:[184,175,163]},
+  {p:50, c:[163,172,155]},
+  {p:75, c:[201,169,166]},
+  {p:100, c:[203,163,107]},
 ];
+
+function moodColorForValue(v){
+  v = Math.max(0, Math.min(100, v));
+  for(let i=0;i<MOOD_GRADIENT_STOPS.length-1;i++){
+    const a = MOOD_GRADIENT_STOPS[i], b = MOOD_GRADIENT_STOPS[i+1];
+    if(v >= a.p && v <= b.p){
+      const t = (v - a.p) / (b.p - a.p);
+      const r = Math.round(a.c[0] + (b.c[0]-a.c[0])*t);
+      const g = Math.round(a.c[1] + (b.c[1]-a.c[1])*t);
+      const bl = Math.round(a.c[2] + (b.c[2]-a.c[2])*t);
+      return `rgb(${r},${g},${bl})`;
+    }
+  }
+  return `rgb(${MOOD_GRADIENT_STOPS[0].c.join(',')})`;
+}
+
+function moodValueOf(mood){
+  if(!mood) return null;
+  if(typeof mood.value === 'number') return mood.value;
+  if(typeof mood.level === 'number') return mood.level * 25;
+  return null;
+}
 
 function activeHabits(){ return state.habits.filter(h=>!h.archived).sort((a,b)=>a.order-b.order); }
 
@@ -723,22 +754,18 @@ function renderDateLabel(){
 function renderMoodStrip(){
   const t = todayStr();
   const mood = state.moods[t] || {};
-  const wrap = document.getElementById('moodEmojis');
-  wrap.innerHTML = '';
-  MOOD_LEVELS.forEach((m, i)=>{
-    const btn = document.createElement('button');
-    btn.className = 'mood-dot-btn';
-    btn.style.background = m.color;
-    btn.title = m.label;
-    if(mood.level === i) btn.classList.add('selected');
-    btn.onclick = () => {
-      if(!state.moods[t]) state.moods[t] = {};
-      state.moods[t].level = i;
-      saveState();
-      renderMoodStrip();
-    };
-    wrap.appendChild(btn);
-  });
+  const v = moodValueOf(mood);
+  const slider = document.getElementById('moodSlider');
+  const swatch = document.getElementById('moodSwatch');
+  slider.value = v === null ? 50 : v;
+  swatch.style.background = moodColorForValue(Number(slider.value));
+  slider.oninput = () => {
+    swatch.style.background = moodColorForValue(Number(slider.value));
+    if(!state.moods[t]) state.moods[t] = {};
+    state.moods[t].value = Number(slider.value);
+    delete state.moods[t].level;
+    saveState();
+  };
 }
 
 document.getElementById('moodNoteBtn').onclick = () => {
@@ -1172,8 +1199,8 @@ function renderCalendar(){
     }
     if(ds === todayS) el.style.border = '2px solid var(--dusk)';
     const mood = state.moods[ds];
-    const moodLevel = mood && typeof mood.level === 'number' ? MOOD_LEVELS[mood.level] : null;
-    el.innerHTML = `<span class="num">${day}</span>${moodLevel ? `<span class="mood-dot" style="background:${moodLevel.color}"></span>` : ''}`;
+    const moodV = moodValueOf(mood);
+    el.innerHTML = `<span class="num">${day}</span>${moodV !== null ? `<span class="mood-dot" style="background:${moodColorForValue(moodV)}"></span>` : ''}`;
     grid.appendChild(el);
   }
 }
