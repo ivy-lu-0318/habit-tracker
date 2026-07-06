@@ -864,7 +864,7 @@ function renderHabitList(){
       const pct = Math.min(100, Math.round(v/habit.target*100));
       let step1 = 1, step2 = null;
       if(habit.type === 'duration'){ step1 = 5; step2 = 10; }
-      if(habit.type === 'quantity'){ step1 = 250; step2 = 500; }
+      if(habit.type === 'quantity'){ step1 = 250; step2 = 750; }
       card.innerHTML = `
         <div class="habit-card-top">
           <div class="habit-title"><span class="emoji">${iconSvg(habitIconKey(habit))}</span>${habit.name}</div>
