@@ -794,7 +794,8 @@ function rgbBlend(c1, c2, t){
 function progressBlendColor(ratio){
   ratio = Math.max(0, ratio);
   if(ratio <= 1) return rgbBlend(GRID_ROSE_RGB, GRID_SAGE_RGB, ratio);
-  const t = Math.min(1, (ratio - 1) / (GRID_OVERACHIEVE_CAP - 1));
+  const raw = Math.min(1, (ratio - 1) / (GRID_OVERACHIEVE_CAP - 1));
+  const t = Math.pow(raw, 0.35); // 提早加深,讓剛超標(例如150%)就跟剛好達標(100%)有明顯差異
   return rgbBlend(GRID_SAGE_RGB, GRID_DEEP_SAGE_RGB, t);
 }
 
