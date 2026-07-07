@@ -781,12 +781,21 @@ function moodColorForValue(v){
 
 const GRID_ROSE_RGB = [201, 169, 166];
 const GRID_SAGE_RGB = [163, 172, 155];
-function progressBlendColor(pct){
-  pct = Math.max(0, Math.min(1, pct));
-  const r = Math.round(GRID_ROSE_RGB[0] + (GRID_SAGE_RGB[0]-GRID_ROSE_RGB[0])*pct);
-  const g = Math.round(GRID_ROSE_RGB[1] + (GRID_SAGE_RGB[1]-GRID_ROSE_RGB[1])*pct);
-  const b = Math.round(GRID_ROSE_RGB[2] + (GRID_SAGE_RGB[2]-GRID_ROSE_RGB[2])*pct);
+const GRID_DEEP_SAGE_RGB = [90, 100, 82];
+const GRID_OVERACHIEVE_CAP = 2; // 超過目標 200% 之後顏色不再加深
+
+function rgbBlend(c1, c2, t){
+  const r = Math.round(c1[0] + (c2[0]-c1[0])*t);
+  const g = Math.round(c1[1] + (c2[1]-c1[1])*t);
+  const b = Math.round(c1[2] + (c2[2]-c1[2])*t);
   return `rgb(${r},${g},${b})`;
+}
+
+function progressBlendColor(ratio){
+  ratio = Math.max(0, ratio);
+  if(ratio <= 1) return rgbBlend(GRID_ROSE_RGB, GRID_SAGE_RGB, ratio);
+  const t = Math.min(1, (ratio - 1) / (GRID_OVERACHIEVE_CAP - 1));
+  return rgbBlend(GRID_SAGE_RGB, GRID_DEEP_SAGE_RGB, t);
 }
 
 function moodValueOf(mood){
