@@ -48,10 +48,12 @@ body{
   padding:16px 18px 8px;
 }
 .date-label{font-size:15px;color:var(--text-light);}
+.date-nav{display:flex;align-items:center;gap:2px;}
 .icon-btn{
   background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);
   padding:6px;line-height:1;
 }
+.icon-btn:disabled{opacity:.3;cursor:default;}
 main{flex:1;padding:0 16px 24px;}
 .page{display:none;}
 .page.active{display:block;}
@@ -248,7 +250,11 @@ svg{vertical-align:middle;flex-shrink:0;}
 <body>
 <div id="app">
   <header class="topbar">
-    <div class="date-label" id="dateLabel"></div>
+    <div class="date-nav">
+      <button class="icon-btn" id="homeDatePrev" data-icon="chevron-left"></button>
+      <div class="date-label" id="dateLabel"></div>
+      <button class="icon-btn" id="homeDateNext" data-icon="chevron-right"></button>
+    </div>
     <button class="icon-btn" id="settingsBtn" data-icon="settings"></button>
   </header>
 
@@ -419,6 +425,14 @@ const STORAGE_KEY = 'habitTrackerData_v1';
 const ICONS = {
   'grip-vertical': '<circle cx="9" cy="12" r="1" /><circle cx="9" cy="5" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="19" r="1" />',
   'activity': '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />',
+  'waves': '<path d="M2 12q2.5 2 5 0t5 0 5 0 5 0" /><path d="M2 19q2.5 2 5 0t5 0 5 0 5 0" /><path d="M2 5q2.5 2 5 0t5 0 5 0 5 0" />',
+  'mountain-snow': '<path d="m8 3 4 8 5-5 5 15H2L8 3z" /><path d="M4.14 15.08c2.62-1.57 5.24-1.43 7.86.42 2.74 1.94 5.49 2 8.23.19" />',
+  'tent': '<path d="M3.5 21 14 3" /><path d="M20.5 21 10 3" /><path d="M15.5 21 12 15l-3.5 6" /><path d="M2 21h20" />',
+  'weight': '<circle cx="12" cy="5" r="3" /><path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z" />',
+  'volleyball': '<path d="M11 7a16 16 20 0 1 10.98 4.362" /><path d="M12 12a13 13 0 0 1-8.66 5" /><path d="M16.83 13.634a16 16 0 0 1-9.267 7.328" /><path d="M20.66 17A13 13 0 0 0 12 12a13 13 0 0 1 0-10" /><path d="M8.17 15.366a16 16 0 0 1-1.713-11.69" /><circle cx="12" cy="12" r="10" />',
+  'medal': '<path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15" /><path d="M11 12 5.12 2.2" /><path d="m13 12 5.88-9.8" /><path d="M8 7h8" /><circle cx="12" cy="17" r="5" /><path d="M12 18v-2h-.5" />',
+  'zap': '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />',
+  'accessibility': '<circle cx="16" cy="4" r="1" /><path d="m18 19 1-7-6 1" /><path d="m5 8 3-3 5.5 3-2.36 3.5" /><path d="M4.24 14.5a5 5 0 0 0 6.88 6" /><path d="M13.76 17.5a5 5 0 0 0-6.88-6" />',
   'alarm-clock': '<circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2" /><path d="M5 3 2 6" /><path d="m22 6-3-3" /><path d="M6.38 18.7 4 21" /><path d="M17.64 18.67 20 21" />',
   'apple': '<path d="M12 6.528V3a1 1 0 0 1 1-1h0" /><path d="M18.237 21A15 15 0 0 0 22 11a6 6 0 0 0-10-4.472A6 6 0 0 0 2 11a15.1 15.1 0 0 0 3.763 10 3 3 0 0 0 3.648.648 5.5 5.5 0 0 1 5.178 0A3 3 0 0 0 18.237 21" />',
   'bar-chart-3': '<path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />',
@@ -518,7 +532,7 @@ const ICONS = {
 };
 
 const ICON_CATEGORIES = {
-  "運動健身": ["activity","dumbbell","footprints","bike","flame","person-standing","trophy","target","star"],
+  "運動健身": ["activity","dumbbell","weight","footprints","bike","flame","person-standing","accessibility","waves","mountain-snow","tent","volleyball","medal","zap","trophy","target","star"],
   "飲食": ["droplet","droplets","coffee","apple","utensils","pizza","wine","beer","carrot","salad","soup","ice-cream-cone","cookie","candy","vegan","milk","citrus","glass-water","cup-soda","hamburger","sandwich","egg","drumstick"],
   "健康": ["pill","heart-pulse","stethoscope","syringe","bath","thermometer","cigarette-off","toilet","spray-can"],
   "睡眠與心靈": ["moon","sun","sun-medium","brain","smile","sparkles","flower","hand-heart"],
@@ -765,6 +779,16 @@ function moodColorForValue(v){
   return `rgb(${MOOD_GRADIENT_STOPS[0].c.join(',')})`;
 }
 
+const GRID_ROSE_RGB = [201, 169, 166];
+const GRID_SAGE_RGB = [163, 172, 155];
+function progressBlendColor(pct){
+  pct = Math.max(0, Math.min(1, pct));
+  const r = Math.round(GRID_ROSE_RGB[0] + (GRID_SAGE_RGB[0]-GRID_ROSE_RGB[0])*pct);
+  const g = Math.round(GRID_ROSE_RGB[1] + (GRID_SAGE_RGB[1]-GRID_ROSE_RGB[1])*pct);
+  const b = Math.round(GRID_ROSE_RGB[2] + (GRID_SAGE_RGB[2]-GRID_ROSE_RGB[2])*pct);
+  return `rgb(${r},${g},${b})`;
+}
+
 function moodValueOf(mood){
   if(!mood) return null;
   if(typeof mood.value === 'number') return mood.value;
@@ -775,15 +799,29 @@ function moodValueOf(mood){
 function activeHabits(){ return state.habits.filter(h=>!h.archived).sort((a,b)=>a.order-b.order); }
 
 // ---------- rendering: home ----------
+let homeDate = todayStr();
+
 function renderDateLabel(){
-  const d = new Date();
+  const d = parseDateStr(homeDate);
   const weekdays = ['日','一','二','三','四','五','六'];
+  const suffix = homeDate === todayStr() ? '（今天）' : `（週${weekdays[d.getDay()]}）`;
   document.getElementById('dateLabel').textContent =
-    `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())}（週${weekdays[d.getDay()]}）`;
+    `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())}${suffix}`;
+  document.getElementById('homeDateNext').disabled = homeDate >= todayStr();
 }
 
+document.getElementById('homeDatePrev').onclick = () => {
+  homeDate = dateStr(addDays(parseDateStr(homeDate), -1));
+  renderDateLabel(); renderMoodStrip(); renderHabitList();
+};
+document.getElementById('homeDateNext').onclick = () => {
+  if(homeDate >= todayStr()) return;
+  homeDate = dateStr(addDays(parseDateStr(homeDate), 1));
+  renderDateLabel(); renderMoodStrip(); renderHabitList();
+};
+
 function renderMoodStrip(){
-  const t = todayStr();
+  const t = homeDate;
   const mood = state.moods[t] || {};
   const v = moodValueOf(mood);
   const slider = document.getElementById('moodSlider');
@@ -819,7 +857,7 @@ function openMoodModal(dstr){
   openModal('moodModal');
 }
 
-document.getElementById('moodNoteBtn').onclick = () => openMoodModal(todayStr());
+document.getElementById('moodNoteBtn').onclick = () => openMoodModal(homeDate);
 document.getElementById('moodNoteCancelBtn').onclick = () => closeModal('moodModal');
 document.getElementById('moodNoteSaveBtn').onclick = () => {
   const t = moodModalDate || todayStr();
@@ -845,11 +883,12 @@ function habitProgressLabel(habit, dstr){
 function renderHabitList(){
   const list = document.getElementById('habitList');
   list.innerHTML = '';
-  const t = todayStr();
+  const t = homeDate;
+  const isToday = t === todayStr();
   const habits = activeHabits().filter(h => isScheduledOnDate(h, t));
 
   if(habits.length === 0){
-    list.innerHTML = '<div class="empty-hint">今天沒有排定的習慣，點下方新增一個吧</div>';
+    list.innerHTML = `<div class="empty-hint">${isToday ? '今天沒有排定的習慣，點下方新增一個吧' : '這天沒有排定的習慣'}</div>`;
     return;
   }
 
@@ -902,7 +941,9 @@ function renderHabitList(){
         <div class="habit-progress-row">
           <span class="habit-progress-text">${habitProgressLabel(habit,t)}</span>
           <div class="habit-actions">
-            <button class="primary" data-timer="${habit.id}" ${done?'disabled':''}>${done?'已完成':'開始計時'}</button>
+            ${isToday
+              ? `<button class="primary" data-timer="${habit.id}" ${done?'disabled':''}>${done?'已完成':'開始計時'}</button>`
+              : `<button class="primary" data-marktimer="${habit.id}">${done?'取消完成':'標記完成'}</button>`}
           </div>
         </div>
         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
@@ -966,6 +1007,14 @@ function renderHabitList(){
     btn.onclick = () => {
       const habit = state.habits.find(h=>h.id===btn.dataset.timer);
       openTimer(habit);
+    };
+  });
+  list.querySelectorAll('[data-marktimer]').forEach(btn=>{
+    btn.onclick = () => {
+      const habit = state.habits.find(h=>h.id===btn.dataset.marktimer);
+      const cur = habitProgressValue(habit, t) || 0;
+      setLogValue(habit, t, cur >= habit.target ? 0 : habit.target);
+      renderHabitList();
     };
   });
   list.querySelectorAll('[data-edit]').forEach(btn=>{
@@ -1345,8 +1394,12 @@ function renderHabitGrids(){
     days.forEach(ds=>{
       const sq = document.createElement('div');
       sq.className = 'grid-square';
-      if(ds <= todayS){
-        if(isScheduledOnDate(h, ds)){
+      if(ds <= todayS && isScheduledOnDate(h, ds)){
+        if(TARGET_SNAPSHOT_TYPES.includes(h.type)){
+          const v = habitProgressValue(h, ds) || 0;
+          const tgt = getLogTarget(h, ds) || 1;
+          sq.style.background = progressBlendColor(v / tgt);
+        } else {
           sq.style.background = isDaySuccess(h,ds) ? 'var(--sage)' : 'var(--rose)';
         }
       }
