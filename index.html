@@ -25,6 +25,23 @@
   --success:#8FA089;
   --shadow:0 2px 10px rgba(90,82,74,0.08);
 }
+:root[data-theme="mist"]{
+  --bg:#EEF2F3; --surface:#FFFFFF; --card:#E2E9EC; --text:#48565E; --text-light:#8CA0A8;
+  --border:#D6E0E3; --accent:#9FB4BC; --dusk:#8AA6B0; --shadow:0 2px 10px rgba(72,86,94,0.08);
+}
+:root[data-theme="oat"]{
+  --bg:#F6F0E6; --surface:#FFFFFF; --card:#EFE3CF; --text:#5C4E3A; --text-light:#A28F70;
+  --border:#E6D6B8; --accent:#C2A876; --dusk:#B98A5A; --shadow:0 2px 10px rgba(92,78,58,0.08);
+}
+:root[data-theme="mauve"]{
+  --bg:#F3EFF2; --surface:#FFFFFF; --card:#E8E0E6; --text:#564C58; --text-light:#998C9C;
+  --border:#DDD1DB; --accent:#B6A0B8; --dusk:#A98FB0; --shadow:0 2px 10px rgba(86,76,88,0.08);
+}
+.theme-swatch-row{display:flex;gap:12px;padding:6px 0 4px;}
+.theme-swatch-btn{border:2px solid transparent;border-radius:14px;padding:4px;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.theme-swatch-btn.selected{border-color:var(--dusk);}
+.theme-swatch-dot{width:32px;height:32px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);}
+.theme-swatch-label{font-size:11px;color:var(--text-light);}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;height:100%;}
 body{
@@ -405,7 +422,9 @@ svg{vertical-align:middle;flex-shrink:0;}
 <div class="modal-overlay hidden" id="settingsModal">
   <div class="modal-sheet">
     <div class="modal-title">設定</div>
-    <div class="section-title">習慣管理</div>
+    <div class="section-title">外觀主題</div>
+    <div class="theme-swatch-row" id="themeSwatchRow"></div>
+    <div class="section-title" style="margin-top:18px;">習慣管理</div>
     <div id="settingsHabitList"></div>
     <div class="section-title" style="margin-top:18px;">資料備份</div>
     <div class="backup-row">
@@ -578,7 +597,7 @@ function defaultHabits(){
 function loadState(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(!raw){
-    const seeded = {habits: defaultHabits(), logs:{}, moods:{}};
+    const seeded = {habits: defaultHabits(), logs:{}, moods:{}, settings:{theme:'wabi'}};
     localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
     return seeded;
   }
@@ -587,9 +606,10 @@ function loadState(){
     if(!parsed.habits) parsed.habits = [];
     if(!parsed.logs) parsed.logs = {};
     if(!parsed.moods) parsed.moods = {};
+    if(!parsed.settings) parsed.settings = {theme:'wabi'};
     return parsed;
   }catch(e){
-    const seeded = {habits: defaultHabits(), logs:{}, moods:{}};
+    const seeded = {habits: defaultHabits(), logs:{}, moods:{}, settings:{theme:'wabi'}};
     localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
     return seeded;
   }
@@ -1256,7 +1276,35 @@ document.getElementById('habitSaveBtn').onclick = () => {
 };
 
 // ---------- settings modal ----------
-document.getElementById('settingsBtn').onclick = () => { renderSettingsHabitList(); openModal('settingsModal'); };
+const THEME_PRESETS = [
+  {key:'wabi', label:'侘寂米', dot:'#EDE6DD'},
+  {key:'mist', label:'霧藍', dot:'#E2E9EC'},
+  {key:'oat', label:'燕麥棕', dot:'#EFE3CF'},
+  {key:'mauve', label:'灰紫', dot:'#E8E0E6'},
+];
+
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', state.settings.theme || 'wabi');
+}
+
+function renderThemeSwatches(){
+  const wrap = document.getElementById('themeSwatchRow');
+  wrap.innerHTML = '';
+  THEME_PRESETS.forEach(p=>{
+    const btn = document.createElement('button');
+    btn.className = 'theme-swatch-btn' + (state.settings.theme === p.key ? ' selected' : '');
+    btn.innerHTML = `<span class="theme-swatch-dot" style="background:${p.dot}"></span><span class="theme-swatch-label">${p.label}</span>`;
+    btn.onclick = () => {
+      state.settings.theme = p.key;
+      saveState();
+      applyTheme();
+      renderThemeSwatches();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+document.getElementById('settingsBtn').onclick = () => { renderSettingsHabitList(); renderThemeSwatches(); openModal('settingsModal'); };
 document.getElementById('settingsCloseBtn').onclick = () => closeModal('settingsModal');
 
 function renderSettingsHabitList(){
@@ -1563,6 +1611,7 @@ function renderStaticIcons(){
 }
 
 function renderAll(){
+  applyTheme();
   renderStaticIcons();
   renderDateLabel();
   renderMoodStrip();
